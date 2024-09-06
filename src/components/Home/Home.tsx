@@ -1,5 +1,7 @@
 import axios from "axios";
 import React, { useEffect, useState } from "react";
+import VideoBackground from "../VideoBackground/VideoBackground";
+import { Router } from "react-router-dom";
 
 type Article = {
     source: {
@@ -57,12 +59,15 @@ const Home = () => {
                 )
                 .then((res) => {
                     const newsData: Article[] = res.data.articles;
-                    if (newsData.length <= 0) {
+                    const filteredData = newsData.filter(
+                        (article) => article.title !== "[Removed]"
+                    );
+                    if (filteredData.length <= 0) {
                         setError("No news found");
                         return;
                     }
-                    console.log(newsData[0]);
-                    setNews(newsData);
+
+                    setNews(filteredData);
                 });
         } catch (error) {
             console.log(error);
@@ -70,71 +75,92 @@ const Home = () => {
     }
 
     return (
-        <div className="min-h-[100vh] p-5">
-            <div className="flex justify-center items-center h-20 gap-4">
-                <input
-                    type="text"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-96 h-10 rounded-md border-2 border-gray-300 p-2"
-                    placeholder="Search for news"
-                />
-                <button
-                    type="submit"
-                    onClick={fetchData}
-                    className="p-2.5 ms-2 text-sm font-medium text-white bg-blue-700 rounded-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+        <div className="">
+            <VideoBackground />
+            <form
+                className="w-[20rem] sm:w-[30rem] absolute top-[18%] md:top-[40%] lg:top-[60%] left-1/2 -translate-x-1/2"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    fetchData();
+                }}
+            >
+                <label
+                    htmlFor="default-search"
+                    className="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white"
                 >
-                    <svg
-                        className="w-4 h-4"
-                        aria-hidden="true"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 20 20"
-                    >
-                        <path
-                            stroke="currentColor"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
-                        />
-                    </svg>
-                    <span className="sr-only">Search</span>
-                </button>
-            </div>
-            <div>{error && <p className="text-red-500">{error}</p>}</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {news.slice(0, pagination).map((article, index) => (
-                    <div key={index} className="bg-gray-100 p-4 rounded-md">
-                        <img
-                            src={article.urlToImage}
-                            alt={article.title}
-                            className="h-48 w-full object-cover rounded-md"
-                        />
-                        <h1 className="text-lg font-semibold mt-2">
-                            {article.title}
-                        </h1>
-                        <p className="text-sm mt-2">{article.description}</p>
-                        <a
-                            href={article.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-500 mt-2"
+                    Search
+                </label>
+                <div className="relative">
+                    <div className="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                        <svg
+                            className="w-4 h-4 text-gray-500 dark:text-gray-400"
+                            aria-hidden="true"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 20 20"
                         >
-                            Read More
-                        </a>
+                            <path
+                                stroke="currentColor"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"
+                            />
+                        </svg>
                     </div>
-                ))}
-            </div>
-            <div className="flex justify-center items-center mt-4">
-                {news.length > pagination && (
+                    <input
+                        type="search"
+                        id="default-search"
+                        className="block w-full p-4 ps-10 text-sm rounded"
+                        placeholder="Search any topic.."
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
                     <button
-                        onClick={() => setPagination(pagination + 10)}
-                        className="bg-blue-500 text-white p-2 rounded-md"
+                        type="submit"
+                        className="text-white absolute end-2.5 bottom-2.5 bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                     >
-                        Load More
+                        Search
                     </button>
-                )}
+                </div>
+            </form>
+
+            <div>{error && <p className="text-red-500">{error}</p>}</div>
+            <div className="">
+                <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {news.slice(0, pagination).map((article, index) => (
+                        <div key={index} className="bg-gray-100 p-4 rounded-md">
+                            <img
+                                src={article.urlToImage}
+                                alt={article.title}
+                                className="h-48 w-full object-cover rounded-md"
+                            />
+                            <h1 className="text-lg font-semibold mt-2">
+                                {article.title}
+                            </h1>
+                            <p className="text-sm mt-2">
+                                {article.description}
+                            </p>
+                            <a
+                                href={article.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-500 mt-2"
+                            >
+                                Read More
+                            </a>
+                        </div>
+                    ))}
+                </div>
+                <div className="flex justify-center items-center mt-4 mb-4">
+                    {news.length > pagination && (
+                        <button
+                            onClick={() => setPagination(pagination + 10)}
+                            className="bg-blue-500 text-white p-2 rounded-md"
+                        >
+                            Load More
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
