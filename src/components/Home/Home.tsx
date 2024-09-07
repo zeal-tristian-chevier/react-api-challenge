@@ -1,42 +1,56 @@
 import axios from "axios";
-import React, { useEffect, useState } from "react";
-import VideoBackground from "../VideoBackground/VideoBackground";
-import { Router } from "react-router-dom";
+import React, { FC, useEffect, useRef, useState } from "react";
+import VideoBackground from "../UI/VideoBackground";
+import { Article } from "../../types";
+import ArticleCard from "../UI/ArticleCard";
+import { useNavigate, useParams } from "react-router-dom";
 
-type Article = {
-    source: {
-        id: string | null;
-        name: string;
-    };
-    author: string | null;
-    title: string;
-    description: string;
-    url: string;
-    urlToImage: string | undefined;
-    publishedAt: Date;
-    content: string | null;
-};
-// const exampleArticle: Article = {
-//     source: {
-//         id: null,
-//         name: "Gizmodo.com",
-//     },
-//     author: "Ed Cara",
-//     title: "Even Cats Can Mourn, Study Suggests",
-//     content:
-//         "A recent study is the latest to throw into the question the idea that cats are unfeeling masters of their domain. Based on interviews with hundreds of cat owners, scientists have found evidence that … [+2457 chars]",
-//     description:
-//         "Scientists have found evidence that cats do grieve after the loss of another pet in the home, including dogs.",
+// Fetch news data based on search value
+export async function fetchNewsData(
+    searchValue: string
+): Promise<Article[] | string> {
+    if (searchValue.length <= 0) {
+        return []; 
+    }
+    try {
+        const response = await axios.get(
+            `https://newsapi.org/v2/everything?q=${searchValue}&apiKey=${process.env.REACT_APP_API_KEY}`
+        );
+        const newsData: Article[] = response.data.articles;
+        const filteredData = newsData.filter(
+            (article) => article.title !== "[Removed]"
+        );
+        if (filteredData.length <= 0) {
+            return "No news found";
+        }
+        return filteredData;
+    } catch (error) {
+        console.error(error);
+        return "Error fetching news";
+    }
+}
 
-//     publishedAt: new Date("2024-08-07T20:55:56Z"),
-//     url: "https://gizmodo.com/even-cats-can-mourn-study-suggests-2000484323",
-//     urlToImage: "https://gizmodo.com/app/uploads/2024/08/sad-cat-1.jpg",
-// };
 const Home = () => {
+
+    const navigate = useNavigate();
+    const { searchValue } = useParams<{ searchValue: string }>(); 
+    const targetRef = useRef<HTMLDivElement>(null);
     const [news, setNews] = useState<Article[]>([]);
-    const [search, setSearch] = useState("");
+    const [search, setSearch] = useState(searchValue || "");
     const [pagination, setPagination] = useState(10);
+    const [clicked, setClicked] = useState(false);
     const [error, setError] = useState("");
+    const [prevSearch, setPrevSearch] = useState<string>("");
+
+    // If the params consist of a search value already, refetch the data
+    useEffect(() => {
+        async function fetchData() {
+            if (searchValue) {
+                await fetchNews(searchValue);
+            }
+        }
+        fetchData();
+    }, [searchValue]);
 
     // If search is no longer empty remove error message
     useEffect(() => {
@@ -45,34 +59,31 @@ const Home = () => {
         }
     }, [search]);
 
-    // Fetch data from the API
-    async function fetchData() {
-        if (search.length <= 0) {
-            setNews([]);
-            setError("");
+    // Scroll to the targetRef when clicked
+    useEffect(() => {
+        if (clicked && targetRef.current) {
+            targetRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+        setClicked(false);
+    }, [clicked]);
+
+    // Fetch data from the API based on the search value
+    const fetchNews = async (searchValue: string) => {
+
+        // Prevent fetching if search value hasn't changed
+        if (searchValue === prevSearch) {
             return;
         }
-        try {
-            axios
-                .get(
-                    `https://newsapi.org/v2/everything?q=${search}&apiKey=${process.env.REACT_APP_API_KEY}`
-                )
-                .then((res) => {
-                    const newsData: Article[] = res.data.articles;
-                    const filteredData = newsData.filter(
-                        (article) => article.title !== "[Removed]"
-                    );
-                    if (filteredData.length <= 0) {
-                        setError("No news found");
-                        return;
-                    }
-
-                    setNews(filteredData);
-                });
-        } catch (error) {
-            console.log(error);
+        setPrevSearch(searchValue);
+        setNews([]); // Clear the news articles
+        const result = await fetchNewsData(searchValue);
+        if (typeof result === "string") {
+            setError(result); // Error message or "No news found"
+        } else {
+            navigate(`/${searchValue}`)
+            setNews(result); // Set the news articles
         }
-    }
+    };
 
     return (
         <div className="">
@@ -81,7 +92,8 @@ const Home = () => {
                 className="w-[20rem] sm:w-[30rem] absolute top-[18%] md:top-[40%] lg:top-[60%] left-1/2 -translate-x-1/2"
                 onSubmit={(e) => {
                     e.preventDefault();
-                    fetchData();
+                    setClicked(true);
+                    fetchNews(search);
                 }}
             >
                 <label
@@ -123,32 +135,20 @@ const Home = () => {
                     </button>
                 </div>
             </form>
-
-            <div>{error && <p className="text-red-500">{error}</p>}</div>
             <div className="">
-                <div className=" grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    {error && (
+                        <p className="text-red-500 text-center p-5 bold text-lg">
+                            {error}
+                        </p>
+                    )}
+                </div>
+                <div
+                    className="place-items-center sm:place-items-start grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mt-3"
+                    ref={targetRef}
+                >
                     {news.slice(0, pagination).map((article, index) => (
-                        <div key={index} className="bg-gray-100 p-4 rounded-md">
-                            <img
-                                src={article.urlToImage}
-                                alt={article.title}
-                                className="h-48 w-full object-cover rounded-md"
-                            />
-                            <h1 className="text-lg font-semibold mt-2">
-                                {article.title}
-                            </h1>
-                            <p className="text-sm mt-2">
-                                {article.description}
-                            </p>
-                            <a
-                                href={article.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-500 mt-2"
-                            >
-                                Read More
-                            </a>
-                        </div>
+                        <ArticleCard key={index} article={article} searchValue={search}/>
                     ))}
                 </div>
                 <div className="flex justify-center items-center mt-4 mb-4">
@@ -165,4 +165,5 @@ const Home = () => {
         </div>
     );
 };
+
 export default Home;

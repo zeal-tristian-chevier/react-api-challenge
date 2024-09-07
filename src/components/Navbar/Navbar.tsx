@@ -8,8 +8,8 @@ import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useLocation } from "react-router-dom";
 
 const Navbar = () => {
-    const location = useLocation(); // Get current URL
-
+    const location = useLocation();
+    
     // Determine active tab based on current URL
     const getClassNames = (path: any) => {
         return location.pathname === path
@@ -22,7 +22,7 @@ const Navbar = () => {
             : "border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700"; // Inactive tab styles
     };
     return (
-        <Disclosure as="nav" className="bg-transparent ">
+        <Disclosure as="nav" className="bg-transparent">
             <div className="absolute left-1/2 -translate-x-1/2 top-5">
                 <h1
                     className="text-2xl"
